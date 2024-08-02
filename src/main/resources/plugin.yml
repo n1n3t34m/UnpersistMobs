@@ -1,0 +1,7 @@
+name: UnpersistMobs
+version: '1.0-SNAPSHOT'
+main: org.nineteam.unpersistMobs.UnpersistMobs
+api-version: '1.19'
+load: STARTUP
+authors: [ Venom Lightning ]
+description: Tweak despawning of mobs holding items
