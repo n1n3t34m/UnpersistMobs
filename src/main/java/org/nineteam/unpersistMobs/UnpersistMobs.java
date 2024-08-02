@@ -35,11 +35,6 @@ public final class UnpersistMobs extends JavaPlugin implements Listener, Command
         config.options().copyDefaults(true);
         saveConfig();
 
-        // Works for every monster with the following exceptions:
-        // - Endermans with block in hands are handled by Purpur
-        // - Zombified Piglins from portals are disabled by Spigot
-        // - Unnaturally spawned mobs because they generated with a structure
-        // - Custom mobs to not accidentally break other plugins behaviour
         Bukkit.getPluginManager().registerEvents(this, this);
         getCommand("admin").setExecutor(this);
     }
