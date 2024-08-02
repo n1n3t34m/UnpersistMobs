@@ -5,3 +5,8 @@ api-version: '1.19'
 load: STARTUP
 authors: [ Venom Lightning ]
 description: Tweak despawning of mobs holding items
+commands:
+  admin:
+    description: Administrative commands
+    usage: /<command> [reload|stats]
+    permission: unpersistmobs.admin
