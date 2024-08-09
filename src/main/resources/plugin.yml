@@ -1,12 +1,12 @@
 name: UnpersistMobs
-version: '1.0-SNAPSHOT'
+version: '1.2-SNAPSHOT'
 main: org.nineteam.unpersistMobs.UnpersistMobs
 api-version: '1.19'
 load: STARTUP
 authors: [ Venom Lightning ]
-description: Tweak despawning of mobs holding items
+description: Tweak despawning of persistent mobs
 commands:
-  admin:
-    description: Administrative commands
-    usage: /<command> [reload|stats]
-    permission: unpersistmobs.admin
+  reload:
+    permission: unpersistmobs.reload
+  stats:
+    permission: unpersistmobs.stats
