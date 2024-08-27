@@ -1,6 +1,7 @@
 package org.nineteam.unpersistMobs;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.SpawnCategory;
@@ -17,8 +18,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.EventPriority;
+import org.bukkit.scoreboard.Team;
 
 import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
@@ -34,13 +35,18 @@ public final class UnpersistMobs extends JavaPlugin implements Listener, Command
 
     @Override
     public void onEnable() {
-        config.addDefault("ticksLived", 1728000);
+        config.addDefault("ticksLived", 1728000);  // 24 hours
         config.addDefault("logOnly", false);
         config.addDefault("dropItems", true);
         config.addDefault("ignoredSpawnReasons", List.of(
-                "DEFAULT", "CUSTOM", "COMMAND"));  // Only natural spawns
+                "DEFAULT", "CUSTOM", "COMMAND", "SPAWNER_EGG"));  // Only natural spawns
+        config.addDefault("ignoreTeams", false);  // Mobs in teams
         config.options().copyDefaults(true);
         saveConfig();
+
+        Metrics metrics = new Metrics(this, 23200);  // bStats
+        getLogger().info(metrics.toString());
+        // TODO: Add charts? https://bstats.org/help/custom-charts
 
         Bukkit.getPluginManager().registerEvents(this, this);
         getCommand("reload").setExecutor(this);
@@ -80,22 +86,25 @@ public final class UnpersistMobs extends JavaPlugin implements Listener, Command
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityAddToWorld(EntityAddToWorldEvent event) {
         Entity entity = event.getEntity();
-        if (entity.isValid() && entity.getSpawnCategory().equals(SpawnCategory.MONSTER)) {  // Only monsters
-            SpawnReason reason = entity.getEntitySpawnReason();
-            if (!config.getStringList("ignoredSpawnReasons").contains(reason.toString())) {  // Filter reason
-                Mob mob = (Mob) entity;
-                if (!mob.getRemoveWhenFarAway() && mob.customName() == null  // Persistent without nametag
-                        && mob.getTicksLived() > config.getInt("ticksLived")) {  // Lived for too long
-                    if (config.getBoolean("logOnly")) {
-                        log("persisted for", mob);
-                    } else {
-                        // Set mob for despawn and mark
-                        mob.setRemoveWhenFarAway(true);
-                        mob.getPersistentDataContainer().set(unpersist, PersistentDataType.BOOLEAN, true);
-                        markedCounter++;
-                        log("marked after", mob);
-                    }
+        if (entity.isValid() && entity.getSpawnCategory().equals(SpawnCategory.MONSTER)) {  // Only alive monsters
+            if (config.getStringList("ignoredSpawnReasons").contains(entity.getEntitySpawnReason().toString())) return;  // Ignored spawn reason
+
+            Mob mob = (Mob) entity;
+            if (!mob.getRemoveWhenFarAway() && mob.getTicksLived() > config.getInt("ticksLived")) {  // Persistent for too long
+                if (mob.customName() != null) {  // Check name tag
+                    if (config.getBoolean("ignoreTeams")) return;  // Skip in any case
+                    Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntityTeam(mob);
+                    if (team == null) return;  // Probably tagged by player
+                    if (!team.getOption(Team.Option.NAME_TAG_VISIBILITY).equals(Team.OptionStatus.NEVER)) return;  // Name visible
                 }
+
+                if (!config.getBoolean("logOnly")) {
+                    // Set mob for despawn and mark
+                    mob.setRemoveWhenFarAway(true);
+                    mob.getPersistentDataContainer().set(unpersist, PersistentDataType.BOOLEAN, true);
+                    markedCounter++;
+                    log("marked after", mob);
+                } else log("persisted for", mob);
             }
         }
     }
@@ -106,7 +115,10 @@ public final class UnpersistMobs extends JavaPlugin implements Listener, Command
         if (entity.isDead() && entity.getChunk().isLoaded()  // FIXME: Replace with event cause in the future
                 && entity.getPersistentDataContainer().getOrDefault(unpersist, PersistentDataType.BOOLEAN, false)) {
             Mob mob = (Mob) entity;
-            if (mob.getCanPickupItems() && config.getBoolean("dropItems")) {  // Entity may picked up something
+            despawnedCounter++;
+            log("despawned after", mob);
+
+            if (mob.getCanPickupItems() && config.getBoolean("dropItems")) {  // May picked up something
                 List<ItemStack> items = new ArrayList<>();
 
                 // Get items
@@ -125,8 +137,6 @@ public final class UnpersistMobs extends JavaPlugin implements Listener, Command
                     }
                 }
             }
-            despawnedCounter++;
-            log("despawned after", mob);
         }
     }
 }

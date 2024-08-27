@@ -1,9 +1,10 @@
 plugins {
+    id 'com.gradleup.shadow' version '8.3.0'
     id 'java'
 }
 
 group = 'org.nineteam'
-version = '1.2-SNAPSHOT'
+version = '1.3-SNAPSHOT'
 
 repositories {
     mavenCentral()
@@ -19,6 +20,17 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.19.4-R0.1-SNAPSHOT")
+    implementation("org.bstats:bstats-bukkit:3.0.2")
+}
+
+shadowJar {
+    relocate("org.bstats", "org.nineteam")
+}
+
+tasks {
+    build {
+        dependsOn(shadowJar)
+    }
 }
 
 def targetJavaVersion = 17
