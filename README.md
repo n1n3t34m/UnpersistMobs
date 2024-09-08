@@ -4,7 +4,10 @@ This plugin aims to solve this issue without disabling any mechanics or enabling
 Upon despawning all mob items will be dropped to reduce chances of losing something valuable for players.
 
 Works for every monster with the following exceptions:
+- Nametagged by player or in a team with visible nametag
+- Unnaturally spawned mobs because they generated within structures
+- Custom and summoned mobs to not accidentally break other plugins behaviour
+
+General recomendations to saveup even more:
 - Endermans with block in hands are handled by Purpur
 - Zombified Piglins from portals are disabled by Spigot
-- Unnaturally spawned mobs because they generated with a structure
-- Custom mobs to not accidentally break other plugins behaviour
