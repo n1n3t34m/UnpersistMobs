@@ -35,12 +35,15 @@ public final class UnpersistMobs extends JavaPlugin implements Listener, Command
 
     @Override
     public void onEnable() {
+        config.options().setHeader(List.of(
+                "Source code: https://github.com/n1n3t34m/UnpersistMobs",
+                "Description: https://modrinth.com/plugin/unpersistmobs"));
         config.addDefault("ticksLived", 1728000);  // 24 hours
         config.addDefault("logOnly", false);
         config.addDefault("dropItems", true);
+        config.addDefault("ignoreTeams", false);  // Mobs in teams
         config.addDefault("ignoredSpawnReasons", List.of(
                 "DEFAULT", "CUSTOM", "COMMAND", "SPAWNER_EGG"));  // Only natural spawns
-        config.addDefault("ignoreTeams", false);  // Mobs in teams
         config.options().copyDefaults(true);
         saveConfig();
 
