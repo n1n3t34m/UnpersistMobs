@@ -1,7 +1,7 @@
 name: UnpersistMobs
-version: '1.3-SNAPSHOT'
+version: ${version}
 main: org.nineteam.unpersistMobs.UnpersistMobs
-api-version: '1.19'
+api-version: '1.18'
 load: STARTUP
 authors: [ Venom Lightning ]
 description: Tweak despawning of persistent mobs

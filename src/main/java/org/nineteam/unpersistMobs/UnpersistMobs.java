@@ -25,7 +25,6 @@ import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public final class UnpersistMobs extends JavaPlugin implements Listener, CommandExecutor {
@@ -42,6 +41,10 @@ public final class UnpersistMobs extends JavaPlugin implements Listener, Command
         config.addDefault("logOnly", false);
         config.addDefault("dropItems", true);
         config.addDefault("ignoreTeams", false);  // Mobs in teams
+        config.addDefault("ignoredWorlds", List.of(
+                "world_nether (example)", "world_the_end (example)"));  // Skip specific worlds
+        config.addDefault("ignoredEntities", List.of(
+                "ZOMBIE (example)", "DROWNED (example)"));  // Skip specific mob types
         config.addDefault("ignoredSpawnReasons", List.of(
                 "DEFAULT", "CUSTOM", "COMMAND", "SPAWNER_EGG"));  // Only natural spawns
         config.options().copyDefaults(true);
@@ -81,7 +84,7 @@ public final class UnpersistMobs extends JavaPlugin implements Listener, Command
         Location loc = entity.getLocation();
         getLogger().info(String.format("%s %s uuid %s in %s at %.1f %.1f %.1f %s %.1f hours!",
                 entity.getEntitySpawnReason(), entity.getType(), entity.getUniqueId(),
-                loc.getWorld().getName(), loc.x(), loc.y(), loc.z(),
+                loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(),
                 verb, (float) entity.getTicksLived() / 20 / 3600)
         );
     }
@@ -90,6 +93,8 @@ public final class UnpersistMobs extends JavaPlugin implements Listener, Command
     public void onEntityAddToWorld(EntityAddToWorldEvent event) {
         Entity entity = event.getEntity();
         if (entity.isValid() && entity.getSpawnCategory().equals(SpawnCategory.MONSTER)) {  // Only alive monsters
+            if (config.getStringList("ignoredWorlds").contains(entity.getWorld().getName())) return; // Ignored world
+            if (config.getStringList("ignoredEntities").contains(entity.getType().toString())) return;  // Ignored mob type
             if (config.getStringList("ignoredSpawnReasons").contains(entity.getEntitySpawnReason().toString())) return;  // Ignored spawn reason
 
             Mob mob = (Mob) entity;
@@ -104,10 +109,10 @@ public final class UnpersistMobs extends JavaPlugin implements Listener, Command
                 if (!config.getBoolean("logOnly")) {
                     // Set mob for despawn and mark
                     mob.setRemoveWhenFarAway(true);
-                    mob.getPersistentDataContainer().set(unpersist, PersistentDataType.BOOLEAN, true);
+                    mob.getPersistentDataContainer().set(unpersist, PersistentDataType.BYTE, (byte) 1);
                     markedCounter++;
                     log("marked after", mob);
-                } else log("persisted for", mob);
+                } else log("persisted for", mob);  // TODO: Alert nearby players in chat?
             }
         }
     }
@@ -115,8 +120,8 @@ public final class UnpersistMobs extends JavaPlugin implements Listener, Command
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityRemoveFromWorld(EntityRemoveFromWorldEvent event) {
         Entity entity = event.getEntity();
-        if (entity.isDead() && entity.getChunk().isLoaded()  // FIXME: Replace with event cause in the future
-                && entity.getPersistentDataContainer().getOrDefault(unpersist, PersistentDataType.BOOLEAN, false)) {
+        if (entity.isDead() && entity.getChunk().isLoaded()  // Workaround (https://github.com/PaperMC/Paper/pull/10149)
+                && entity.getPersistentDataContainer().getOrDefault(unpersist, PersistentDataType.BYTE, (byte) 0) == 1) {
             Mob mob = (Mob) entity;
             despawnedCounter++;
             log("despawned after", mob);
@@ -128,7 +133,7 @@ public final class UnpersistMobs extends JavaPlugin implements Listener, Command
                 EntityEquipment equipment = mob.getEquipment();
                 items.add(equipment.getItemInMainHand());
                 items.add(equipment.getItemInOffHand());
-                items.addAll(Arrays.asList(equipment.getArmorContents()));
+                items.addAll(List.of(equipment.getArmorContents()));
 
                 // Drop items
                 World world = mob.getWorld();
